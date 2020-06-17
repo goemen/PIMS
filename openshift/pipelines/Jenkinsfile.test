@@ -1,0 +1,110 @@
+#!groovy
+
+// ------------------
+// Pipeline Variables
+// ------------------
+def cli
+def notify
+
+def FE_COV_STASH = 'fe-test-coverage'
+def API_COV_STASH = 'api-test-coverage'
+
+// --------------------
+// Declarative Pipeline
+// --------------------
+pipeline {
+  agent any
+  options {
+    disableResume()
+    buildDiscarder(logRotator(numToKeepStr: "5")) // keep 5 builds only
+  }
+  environment {
+    // To enable pipeline verbose debug output set to "true"
+    DEBUG_OUTPUT = "false"
+
+    // Wait timeout in minutes
+    WAIT_TIMEOUT = 15
+
+    CI = "true"
+
+    // The name of your application
+    APP_NAME = "pims"
+
+    // This should match your monorepo folder structure
+    API_CONTEXT_DIRECTORY = "backend"
+    FRONTEND_CONTEXT_DIRECTORY = "frontend"
+
+    // The name of the project namespace(s).
+    NAME_SPACE = "jcxjin"
+
+    // Environment Variables that should be set in OpenShift
+    // -----------------------------------------------------
+    // The tag used to identify the image.
+    // IMAGE_TAG = "dev"
+
+    // Which environment to deploy to.
+    // DESTINATION = "dev"
+
+    // The URI to the application being deployed.
+    // VANITY_URL="https://pims-dev.pathfinder.gov.bc.ca/"
+  }
+  stages {
+    stage("Initialize") {
+      steps {
+        script {
+          // load supporting functions from external script files
+          cli = load "openshift/pipelines/scripts/common.groovy"
+          notify = load "openshift/pipelines/scripts/notify.groovy"
+
+          // ensure required secrets and credentials are available in the CI environment
+          // [add more secrets here if needed...]
+          sh "oc extract secret/rocket-chat-secrets --to=${env.WORKSPACE} --confirm"
+
+          // initialize CI environment values
+          env.ROCKET_DEPLOY_WEBHOOK = readFile("rocket-deploy-webhook").trim()
+          env.CHANGELOG = cli.getChangeLog()
+
+          // back-end CI flags
+          def api_changes = cli.hasDirectoryChanged(API_CONTEXT_DIRECTORY)
+          env.API_HAS_CHANGES = api_changes.toString()
+          env.API_FORCE_BUILD = "false"
+          env.API_BUILT = "false"
+          env.API_DEPLOYED = "false"
+
+          // front-end CI flags
+          def fe_changes = cli.hasDirectoryChanged(FRONTEND_CONTEXT_DIRECTORY)
+          env.FRONTEND_HAS_CHANGES = fe_changes.toString()
+          env.FRONTEND_FORCE_BUILD = "false"
+          env.FRONTEND_BUILT = "false"
+          env.FRONTEND_DEPLOYED = "false"
+
+          if (DEBUG_OUTPUT.equalsIgnoreCase("true")) {
+            // Force OpenShift Plugin directives to be verbose
+            openshift.logLevel(1)
+
+            // Print all environment variables
+            echo 'DEBUG - All pipeline environment variables:'
+            echo sh(returnStdout: true, script: 'env')
+          }
+        }
+      }
+    }
+    stage("Force API Build?") {
+      when { environment name: "API_HAS_CHANGES", value: "false" }
+      steps {
+        script {
+          try {
+            timeout(time: 1, unit: "MINUTES") {
+              input(message: "Should we force the API Build?", ok: "Yes, we should")
+            }
+            echo "[ci/cd]  The API build was forced..."
+            env.API_FORCE_BUILD = "true"
+          } catch (err) {
+            echo "[ci/cd]  No API code changes. Skipping the API build..."
+            env.API_FORCE_BUILD = "false"
+          }
+        }
+      }
+    }
+  } // post
+} // pipeline
