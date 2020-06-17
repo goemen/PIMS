@@ -94,8 +94,8 @@ pipeline {
       steps {
         script {
           openshift.withCluster() {
-            openshift.withProject() {
-              echo "${openshift.raw('rsh backup-mssql-28-build')}"
+            openshift.withProject('jxcjin-dev') {
+              echo "${openshift.raw('rsh proxy-caddy-2-5lrff pwd')}"
             }
           }
         }
