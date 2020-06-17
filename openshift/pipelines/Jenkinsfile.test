@@ -93,12 +93,17 @@ pipeline {
       when { environment name: "API_HAS_CHANGES", value: "false" }
       steps {
         script {
-          try {
-            echo "Will be testing OC here..."
-          } catch (err) {
-            echo "[ci/cd]  No API code changes. Skipping the API build..."
-            env.API_FORCE_BUILD = "false"
+          openshift.withCluster() {
+            openshift.withProject() {
+              try {
+                openshift.raw("whoami")
+              } catch (err) {
+                echo "${err}"
+                echo "[ci/cd]  No api tag specified"
+              }
+            }
           }
+        }
         }
       }
     }
