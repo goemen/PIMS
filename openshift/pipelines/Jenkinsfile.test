@@ -95,15 +95,9 @@ pipeline {
         script {
           openshift.withCluster() {
             openshift.withProject() {
-              try {
-                openshift.raw("whoami")
-              } catch (err) {
-                echo "${err}"
-                echo "[ci/cd]  No api tag specified"
-              }
+              openshift.raw("whoami")
             }
           }
-        }
         }
       }
     }
