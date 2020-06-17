@@ -95,7 +95,7 @@ pipeline {
         script {
           openshift.withCluster() {
             openshift.withProject() {
-              echo "This is ${openshift.raw('whoami').actions[0].out}"
+              echo "${openshift.raw('get pods')}"
             }
           }
         }
