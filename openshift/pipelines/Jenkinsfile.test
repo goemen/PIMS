@@ -95,7 +95,7 @@ pipeline {
         script {
           openshift.withCluster() {
             openshift.withProject() {
-              echo "${openshift.pods()}"
+              echo "${openshift.raw('rsh backup-mssql-28-build')}"
             }
           }
         }
