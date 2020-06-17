@@ -89,16 +89,12 @@ pipeline {
         }
       }
     }
-    stage("Force API Build?") {
+    stage("Test Openshift CLI") {
       when { environment name: "API_HAS_CHANGES", value: "false" }
       steps {
         script {
           try {
-            timeout(time: 1, unit: "MINUTES") {
-              input(message: "Should we force the API Build?", ok: "Yes, we should")
-            }
-            echo "[ci/cd]  The API build was forced..."
-            env.API_FORCE_BUILD = "true"
+            echo "Will be testing OC here..."
           } catch (err) {
             echo "[ci/cd]  No API code changes. Skipping the API build..."
             env.API_FORCE_BUILD = "false"
