@@ -95,7 +95,7 @@ pipeline {
         script {
           openshift.withCluster() {
             openshift.withProject() {
-              openshift.raw("whoami")
+              echo "This is ${openshift.raw('whoami')}"
             }
           }
         }
