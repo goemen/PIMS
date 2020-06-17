@@ -95,7 +95,7 @@ pipeline {
         script {
           openshift.withCluster() {
             openshift.withProject() {
-              echo "${openshift.raw('get pods')}"
+              echo "${openshift.pods()}"
             }
           }
         }
